@@ -1,89 +1,222 @@
 import streamlit as st
+import json
+import os
 
-st.set_page_config(page_title="Tool Calcolo Podismo", page_icon="🏃‍♂️", layout="centered")
+st.set_page_config(page_title="Tool Allenamento Corsi", layout="wide")
 
-st.title("🏃‍♂️ Mini-Tool Calcolo Allenamento")
-st.markdown("Seleziona quale variabile vuoi calcolare inserendo i dati noti:")
+# --- SFONDO PERSONALIZZATO ---
+sfondo_css = """
+<style>
+.stApp {
+background-image:
+url("https://www.liceodonmilani.it/wp-content/uploads/2021/06/Schermata-2018-01-22-alle-12.49.06-980x490-1.png");
+background-size: cover;
+background-position: center;
+background-repeat: no-repeat;
+}
+</style>
+"""
+st.markdown(sfondo_css, unsafe_allow_html=True)
 
-# Creiamo dei tab per separare le 3 funzioni del mini-tool
-tab1, tab2, tab3 = st.tabs(["Calcola Tempo", "Calcola Ritmo", "Calcola Distanza"])
+# --- 1. PROTEZIONE PASSWORD ---
+st.sidebar.header("Accesso Riservato")
+password_inserita = st.sidebar.text_input("Inserisci la password:", type="password")
+if password_inserita != "allenamento2026":
+    st.warning("⚠️ Inserisci la password corretta nella barra laterale per sbloccare l'applicazione.")
+    st.stop()
+st.sidebar.success("Accesso Autorizzato!")
 
-# --- TAB 1: Calcola il Tempo Totale (Distanza + Ritmo) ---
-with tab1:
-    st.subheader("⏱️ Calcola il Tempo Totale")
-    col1, col2 = st.columns(2)
-    with col1:
-        dist_km = st.number_input("Distanza (km)", min_value=0.1, value=10.0, step=0.1, key="t_km")
-    with col2:
-        st.markdown("Ritmo al km")
-        c_min, c_sec = st.columns(2)
-        with c_min:
-            ritmo_min = st.number_input("Min", min_value=0, max_value=15, value=5, key="t_min")
-        with c_sec:
-            ritmo_sec = st.number_input("Sec", min_value=0, max_value=59, value=0, key="t_sec")
-            
-    if st.button("Calcola Tempo", key="btn_t"):
-        tot_sec_per_km = (ritmo_min * 60) + ritmo_sec
-        tot_sec = tot_sec_per_km * dist_km
-        ore = int(tot_sec // 3600)
-        minuti = int((tot_sec % 3600) // 60)
-        secondi = int(tot_sec % 60)
-        
-        if ore > 0:
-            risultato = f"{ore}h {minuti:02d}m {secondi:02d}s"
-        else:
-            risultato = f"{minuti}m {secondi:02d}s"
-            
-        st.success(f"### Tempo stimato: {risultato}")
+st.title("🏃‍♂️ Gestione Completa Allenamenti & Carichi")
 
-# --- TAB 2: Calcola il Ritmo (Tempo Totale + Distanza) ---
-with tab2:
-    st.subheader("⚡ Calcola il Ritmo al Km")
-    dist_km_2 = st.number_input("Distanza (km)", min_value=0.1, value=10.0, step=0.1, key="r_km")
+# --- GESTIONE ARCHIVIO DATI (SALVATAGGIO) ---
+FILE_DATI = "storico_allenamenti.json"
+
+def carica_dati():
+    if os.path.exists(FILE_DATI):
+        with open(FILE_DATI, "r") as f:
+            return json.load(f)
+    return []
+
+def salva_dati(dati):
+    with open(FILE_DATI, "w") as f:
+        json.dump(dati, f)
+
+storico = carica_dati()
+
+# --- MENU A SCHEDE ---
+tab_scelta1, tab_scelta2, tab_scelta3 = st.tabs([
+    "⚡ Calcolo Ripetute & Mini-Tool", 
+    "📊 Grafico Allenamenti 7 Giorni", 
+    "📂 Storico Salvato"
+])
+
+# ==============================================================================
+# SCHEDA 1: CALCOLO RIPETUTE
+# ==============================================================================
+with tab_scelta1:
+    st.subheader("Gestione Frazioni & Ripetute")
+    st.markdown("Inserisci le frazioni o le ripetute: l'app calcolerà all'istante il dato mancante e i totali finali.")
+
+    ritmi_disponibili = ["Seleziona ritmo..."]
+    for m in range(2, 7):
+        for s in range(0, 60, 5):
+            if (m == 2 and s >= 10) or (m > 2 and m < 6) or (m == 6 and s <= 15):
+                ritmi_disponibili.append(f"{m}:{s:02d}")
+
+    num_blocchi = 10
+    km_totali_gen = 0.0
+    secondi_totali_gen = 0
+    ritmi_validi_gen = []
+
+    st.markdown("---")
+    sessione_corrente = []
     
-    st.markdown("Tempo Totale Impiegato")
-    c_h, c_m, c_s = st.columns(3)
-    with c_h:
-        t_ore = st.number_input("Ore", min_value=0, max_value=24, value=0, key="r_h")
-    with c_m:
-        t_min = st.number_input("Minuti", min_value=0, max_value=59, value=45, key="r_m")
-    with c_s:
-        t_sec = st.number_input("Secondi", min_value=0, max_value=59, value=0, key="r_s")
-        
-    if st.button("Calcola Ritmo", key="btn_r"):
-        tot_sec = (t_ore * 3600) + (t_min * 60) + t_sec
-        if dist_km_2 > 0:
-            sec_al_km = tot_sec / dist_km_2
-            r_min = int(sec_al_km // 60)
-            r_sec = int(sec_al_km % 60)
-            st.success(f"### Ritmo calcolato: {r_min}:{r_sec:02d} /km")
-        else:
-            st.error("La distanza deve essere maggiore di zero.")
+    for i in range(1, num_blocchi + 1):
+        with st.expander(f"Ripetuta / Blocco {i}", expanded=(i == 1)):
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                km = st.number_input(f"Distanza (Km) #{i}", min_value=0.0, max_value=100.0, value=0.0, step=0.1, key=f"km_{i}")
+            with c2:
+                st.markdown("**Tempo Totale**")
+                t_min = st.number_input(f"Min #{i}", min_value=0, max_value=300, value=0, key=f"tm_{i}")
+                t_sec = st.number_input(f"Sec #{i}", min_value=0, max_value=59, value=0, step=5, key=f"ts_{i}")
+            with c3:
+                ritmo_scelto = st.selectbox(f"Ritmo al Km #{i}", ritmi_disponibili, key=f"rit_{i}")
+            
+            sec_tempo_inserito = t_min * 60 + t_sec
+            sec_ritmo_scelto = 0
+            if ritmo_scelto != "Seleziona ritmo...":
+                mr, sr = map(int, ritmo_scelto.split(":"))
+                sec_ritmo_scelto = mr * 60 + sr
+                
+            risultato_riga = ""
+            if km > 0 and sec_tempo_inserito > 0 and ritmo_scelto == "Seleziona ritmo...":
+                sec_r = sec_tempo_inserito / km
+                rm = int(sec_r // 60)
+                rs = int(sec_r % 60)
+                risultato_riga = f"⚡ **Ritmo calcolato:** {rm}:{rs:02d} /km"
+                sec_ritmo_scelto = sec_r
+            elif km > 0 and sec_ritmo_scelto > 0 and sec_tempo_inserito == 0:
+                sec_t = int(sec_ritmo_scelto * km)
+                tm_calc = sec_t // 60
+                ts_calc = sec_t % 60
+                risultato_riga = f"⏱️ **Tempo calcolato:** {tm_calc}m {ts_calc:02d}s"
+                sec_tempo_inserito = sec_t
+            elif km == 0.0 and sec_tempo_inserito > 0 and sec_ritmo_scelto > 0:
+                km_calc = round(sec_tempo_inserito / sec_ritmo_scelto, 2)
+                risultato_riga = f"📏 **Distanza calcolata:** {km_calc} km"
+                km = km_calc
 
-# --- TAB 3: Calcola la Distanza (Tempo Totale + Ritmo) ---
-with tab3:
-    st.subheader("📏 Calcola la Distanza")
-    st.markdown("Tempo Totale")
-    c_h3, c_m3, c_s3 = st.columns(3)
-    with c_h3:
-        t_ore3 = st.number_input("Ore", min_value=0, max_value=24, value=0, key="d_h")
-    with c_m3:
-        t_min3 = st.number_input("Minuti", min_value=0, max_value=59, value=50, key="d_m")
-    with c_s3:
-        t_sec3 = st.number_input("Secondi", min_value=0, max_value=59, value=0, key="d_s")
-        
-    st.markdown("Ritmo al km tenuto")
-    c_min3, c_sec3 = st.columns(2)
-    with c_min3:
-        ritmo_min3 = st.number_input("Min", min_value=0, max_value=15, value=5, key="d_rmin")
-    with c_sec3:
-        ritmo_sec3 = st.number_input("Sec", min_value=0, max_value=59, value=0, key="d_rsec")
-        
-    if st.button("Calcola Distanza", key="btn_d"):
-        tot_sec_tempo = (t_ore3 * 3600) + (t_min3 * 60) + t_sec3
-        sec_al_km3 = (ritmo_min3 * 60) + ritmo_sec3
-        if sec_al_km3 > 0:
-            km_calcolati = tot_sec_tempo / sec_al_km3
-            st.success(f"### Distanza percorsa: {km_calcolati:.2f} km")
+            if risultato_riga:
+                st.success(risultato_riga)
+
+            if km > 0 or sec_tempo_inserito > 0:
+                sessione_corrente.append({"blocco": i, "km": km, "tempo_sec": sec_tempo_inserito, "ritmo": ritmo_scelto})
+
+            if km > 0:
+                km_totali_gen += km
+            if sec_tempo_inserito > 0:
+                secondi_totali_gen += sec_tempo_inserito
+            if sec_ritmo_scelto > 0:
+                ritmi_validi_gen.append(sec_ritmo_scelto)
+
+    st.markdown("---")
+    st.subheader("📊 Riepilogo Totale")
+    col_tot1, col_tot2, col_tot3 = st.columns(3)
+    col_tot1.metric("Distanza Totale", f"{km_totali_gen:.2f} km")
+
+    h_t = secondi_totali_gen // 3600
+    m_t = (secondi_totali_gen % 3600) // 60
+    s_t = secondi_totali_gen % 60
+    str_t_gen = f"{h_t}h {m_t:02d}m {s_t:02d}s" if h_t > 0 else f"{m_t}m {s_t:02d}s"
+    col_tot2.metric("Tempo Totale", str_t_gen)
+
+    if ritmi_validi_gen:
+        media_r = sum(ritmi_validi_gen) / len(ritmi_validi_gen)
+        str_r_gen = f"{int(media_r // 60)}:{int(media_r % 60):02d} /km"
+    else:
+        str_r_gen = "--:--"
+    col_tot3.metric("Ritmo Medio Generale", str_r_gen)
+
+    # Pulsante per salvare la sessione
+    nome_sessione = st.text_input("Nome da dare a questa sessione di allenamento (es. Test 10km):", key="nome_sess")
+    if st.button("💾 Salva questa Sessione"):
+        if nome_sessione.strip():
+            nuovo_salvataggio = {
+                "titolo": nome_sessione,
+                "km_totali": km_totali_gen,
+                "tempo_totale": str_t_gen,
+                "ritmo_medio": str_r_gen,
+                "dettagli": sessione_corrente
+            }
+            storico.append(nuovo_salvataggio)
+            salva_dati(storico)
+            st.success("✅ Sessione salvata con successo! La trovi nella scheda 'Storico Salvato'.")
         else:
-            st.error("Il ritmo non può essere zero.")
+            st.error("Inserisci un nome valido per la sessione prima di salvare.")
+
+
+# ==============================================================================
+# SCHEDA 2: GRAFICO SETTIMANALE
+# ==============================================================================
+with tab_scelta2:
+    st.subheader("📈 Tabella Sette Giorni - Previsioni vs Effettivi & Carichi")
+    
+    carico_prev_tot = 0.0
+    carico_eff_tot = 0.0
+    km_prev_tot = 0.0
+    km_eff_tot = 0.0
+
+    for allenamento in range(1, 8):
+        with st.expander(f"Allenamento #{allenamento}", expanded=(allenamento == 1)):
+            c_prev, c_eff = st.columns(2)
+            with c_prev:
+                st.markdown("#### 📋 Previsto")
+                p_min = st.number_input(f"Minuti Previsti #{allenamento}", min_value=0, max_value=300, value=0, key=f"p_min_{allenamento}")
+                p_km = st.number_input(f"Km Previsti #{allenamento}", min_value=0.0, max_value=100.0, value=0.0, step=0.1, key=f"p_km_{allenamento}")
+                p_sforzo = st.slider(f"Sforzo Previsto (1-10) #{allenamento}", 1, 10, 5, key=f"p_sf_{allenamento}")
+            with c_eff:
+                st.markdown("#### ✅ Effettivo")
+                e_min = st.number_input(f"Minuti Effettivi #{allenamento}", min_value=0, max_value=300, value=0, key=f"e_min_{allenamento}")
+                e_km = st.number_input(f"Km Effettivi #{allenamento}", min_value=0.0, max_value=100.0, value=0.0, step=0.1, key=f"e_km_{allenamento}")
+                e_sforzo = st.slider(f"Sforzo Effettivo (1-10) #{allenamento}", 1, 10, 5, key=f"e_sf_{allenamento}")
+
+            carico_previsto_singolo = p_min * p_sforzo
+            carico_effettivo_singolo = e_min * e_sforzo
+            carico_prev_tot += carico_previsto_singolo
+            carico_eff_tot += carico_effettivo_singolo
+            km_prev_tot += p_km
+            km_eff_tot += e_km
+
+            st.info(f"🔹 **Carico Previsto:** {carico_previsto_singolo} | 🔸 **Carico Effettivo:** {carico_effettivo_singolo}")
+
+    st.markdown("---")
+    col_es1, col_es2 = st.columns(2)
+    with col_es1:
+        st.metric("KM Totali Previsti", f"{km_prev_tot:.2f} km")
+        st.metric("Carico Totale Previsto", f"{carico_prev_tot:.0f}")
+    with col_es2:
+        st.metric("KM Totali Effettivi", f"{km_eff_tot:.2f} km")
+        st.metric("Carico Totale Effettivo", f"{carico_eff_tot:.0f}")
+
+
+# ==============================================================================
+# SCHEDA 3: STORICO SALVATO (Per ripescare i dati)
+# ==============================================================================
+with tab_scelta3:
+    st.subheader("📂 Archivio Sessioni Salvate")
+    st.markdown("Qui puoi ripescare tutte le sessioni salvate in precedenza.")
+
+    if not storico:
+        st.info("Nessuna sessione salvata al momento.")
+    else:
+        for idx, item in enumerate(storico):
+            with st.expander(f"📌 {item['titolo']} (ID: {idx+1})"):
+                st.write(f"**Distanza Totale:** {item['km_totali']:.2f} km")
+                st.write(f"**Tempo Totale:** {item['tempo_totale']}")
+                st.write(f"**Ritmo Medio:** {item['ritmo_medio']}")
+                
+                if st.button(f"🗑️ Elimina sessione '{item['titolo']}'", key=f"del_{idx}"):
+                    storico.pop(idx)
+                    salva_dati(storico)
+                    st.rerun()
