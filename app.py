@@ -4,7 +4,7 @@ import os
 
 st.set_page_config(page_title="Tool Allenamento - 28 Giorni", layout="wide")
 
-# --- CSS PERSONALIZZATO PER CONTRASTO PERFETTO ANCHE SUI PULSANTI E SULLA PASSWORD ---
+# --- CSS PERSONALIZZATO PER CONTRASTO E STILE TABELLA EXCEL ---
 sfondo_css = """
 <style>
 .stApp {
@@ -27,7 +27,6 @@ div.stExpander, div.stTabs [data-baseweb="tab-panel"], section[data-testid="stSi
 h1, h2, h3, h4, h5, h6, p, label, span, div {
     color: #111111 !important;
 }
-/* Campi di input e menu a tendina */
 input, select, textarea, div[data-baseweb="select"] > div, [data-baseweb="popover"], [data-baseweb="menu"], [role="listbox"] {
     background-color: #ffffff !important;
     color: #000000 !important;
@@ -37,7 +36,6 @@ input, select, textarea, div[data-baseweb="select"] > div, [data-baseweb="popove
     color: #000000 !important;
     -webkit-text-fill-color: #000000 !important;
 }
-/* Stile per i pulsanti (Accedi, Salva, Elimina) per garantirne la leggibilità assoluta */
 button, button p, div[data-testid="stButton"] > button {
     background-color: #d9534f !important;
     color: #ffffff !important;
@@ -46,7 +44,6 @@ button, button p, div[data-testid="stButton"] > button {
     border-radius: 8px !important;
     border: none !important;
 }
-/* Occhiello password e pulsanti interni agli input */
 button[aria-label="Show password"], button[aria-label="Hide password"] {
     background-color: #e9ecef !important;
     color: #000000 !important;
@@ -92,9 +89,10 @@ storico = carica_dati()
 if "edit_data" not in st.session_state:
     st.session_state.edit_data = None
 
-tab_scelta1, tab_scelta2 = st.tabs([
+tab_scelta1, tab_scelta2, tab_scelta3 = st.tabs([
     "📅 Gestione 4 Settimane (28 Giorni)", 
-    "📂 Archivio & Backup Locale"
+    "📊 Schema Tabulare & Stampa PDF",
+    "📂 Archivio & Backup"
 ])
 
 ritmi_disponibili = ["Seleziona ritmo..."]
@@ -264,44 +262,44 @@ with tab_scelta1:
         else:
             st.error("Inserisci un nome valido.")
 
+# ==============================================================================
+# SCHEDA 2: SCHEMA TABULARE IN STILE EXCEL & STAMPA PDF
+# ==============================================================================
 with tab_scelta2:
-    st.subheader("📂 Archivio & Gestione Backup Locale")
-    
-    json_string = json.dumps(storico, indent=4)
-    st.download_button(
-        label="📥 Scarica Backup Archivio sul Tablet/Smartphone (.json)",
-        data=json_string,
-        file_name="backup_allenamenti.json",
-        mime="application/json"
-    )
-    
-    st.markdown("---")
-    uploaded_file = st.file_uploader("📤 Ripristina Backup da File JSON salvato sul Tablet:", type=["json"])
-    if uploaded_file is not None:
-        try:
-            dati_caricati = json.load(uploaded_file)
-            if st.button("🔄 Conferma e Ripristina Backup"):
-                salva_dati(dati_caricati)
-                st.success("✅ Backup ripristinato con successo!")
-                st.rerun()
-        except Exception as e:
-            st.error("Errore nella lettura del file JSON.")
+    st.subheader("📊 Schema Tabulare Completo (Stile Excel)")
+    st.markdown("Questo prospetto riassume i dati inseriti nei 7 giorni in formato tabella. Puoi stamparlo o salvarlo come PDF premendo i tasti funzione del tuo tablet/browser (`Ctrl+P` o menu Condividi -> Stampa).")
 
-    st.markdown("---")
-    if not storico:
-        st.info("Nessun elemento salvato nell'archivio.")
-    else:
-        for idx, item in enumerate(storico):
-            with st.expander(f"📌 {item['titolo']} ({item['settimana']})"):
-                st.write(f"**KM:** {item['km_settimana']:.2f} | **Carico Effettivo:** {item['carico_effettivo']} pt | **Ritmo:** {item['ritmo_medio']}")
-                
-                col_btn1, col_btn2 = st.columns(2)
-                with col_btn1:
-                    if st.button(f"✏️ Modifica", key=f"edit_{idx}"):
-                        st.session_state.edit_data = item
-                        st.success(f"Caricato '{item['titolo']}'. Torna alla scheda 'Gestione 4 Settimane'.")
-                with col_btn2:
-                    if st.button(f"🗑️ Elimina", key=f"del_{idx}"):
-                        storico.pop(idx)
-                        salva_dati(storico)
-                        st.rerun()
+    sett_tabella = st.selectbox("Visualizza Tabella per:", ["Settimana 1", "Settimana 2", "Settimana 3", "Settimana 4"], key="tab_s_sel")
+    n_s_tab = int(sett_tabella.split(" ")[1])
+
+    # Creiamo una tabella riassuntiva dei 7 giorni della settimana selezionata
+    dati_tabella = []
+    tot_km_p = 0.0
+    tot_km_e = 0.0
+    tot_min_p = 0
+    tot_min_e = 0
+    tot_carico_p = 0
+    tot_carico_e = 0
+
+    for g in range(1, 8):
+        s_n = str(n_s_tab)
+        g_n = str(g)
+        
+        desc = st.session_state.get(f"desc_s{s_n}_g{g_n}", f"Allenamento {g}")
+        k_prev = st.session_state.get(f"p_km_s{s_n}_g{g_n}", 0.0)
+        k_eff = st.session_state.get(f"e_km_s{s_n}_g{g_n}", 0.0)
+        m_prev = st.session_state.get(f"p_min_s{s_n}_g{g_n}", 0)
+        m_eff = st.session_state.get(f"e_min_s{s_n}_g{g_n}", 0)
+        sf_p = st.session_state.get(f"p_sf_s{s_n}_g{g_n}", 5)
+        sf_e = st.session_state.get(f"e_sf_s{s_n}_g{g_n}", 5)
+        
+        c_p = m_prev * sf_p if m_prev > 0 else int(k_prev * 10 * sf_p)
+        c_e = m_eff * sf_e if m_eff > 0 else int(k_eff * 10 * sf_e)
+        
+        bmax = st.session_state.get(f"bmax_s{s_n}_g{g_n}", 0)
+        bmin = st.session_state.get(f"bmin_s{s_n}_g{g_n}", 0)
+        cad = st.session_state.get(f"cad_s{s_n}_g{g_n}", 0)
+
+        tot_km_p += k_prev
+        tot_km_e += k_eff
+        tot_min_p
