@@ -104,16 +104,47 @@ for m in range(2, 7):
 
 def mostra_banner_sforzo(valore):
     colori_sforzo = {
-        1: "🟢 Molto Leggero (Rigenerante)",
-        2: "🟢 Leggero (Corsa lenta)",
-        3: "🔵 Moderato (Fondo lungo)",
-        4: "🔵 Medio-Basso (Progressivo)",
-        5: "🟡 Medio (Ritmo medio)",
-        6: "🟡 Impegnativo (Soglia)",
-        7: "🟠 Forte (Corto veloce)",
-        8: "🔴 Molto Forte (Ripetute brevi)",
-        9: "🔴 Estenuante (Massima potenza)",
-        10: "🔥 Massimale (Gara)"
+        1: "Molto Leggero (Rigenerante)",
+        2: "Leggero (Corsa lenta)",
+        3: "Moderato (Fondo lungo)",
+        4: "Medio-Basso (Progressivo)",
+        5: "Medio (Ritmo medio)",
+        6: "Impegnativo (Soglia)",
+        7: "Forte (Corto veloce)",
+        8: "Molto Forte (Ripetute brevi)",
+        9: "Estenuante (Massima potenza)",
+        10: "Massimale (Gara)"
     }
     desc = colori_sforzo.get(valore, "Normale")
-    st.markdown(f'<div style="background-color: #fff3cd; color: #000000; padding: 8px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 14px; border: 1px solid #ffeeba;">🟡 Sforzo {valore}: {desc}
+    testo_banner = "🟡 Sforzo " + str(valore) + ": " + desc
+    st.markdown('<div style="background-color: #fff3cd; color: #000000; padding: 8px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 14px; border: 1px solid #ffeeba;">' + testo_banner + '</div>', unsafe_allow_html=True)
+
+with tab_scelta1:
+    st.subheader("📋 Ciclo Mensile: 4 Settimane x 7 Giorni")
+    
+    titolo_predefinito = ""
+    if st.session_state.edit_data:
+        titolo_predefinito = st.session_state.edit_data.get("titolo", "")
+        st.info(f"✏️ Stai modificando il piano: **{titolo_predefinito}**")
+
+    settimana_scelta = st.selectbox("Seleziona la Settimana:", ["Settimana 1", "Settimana 2", "Settimana 3", "Settimana 4"])
+    num_sett = int(settimana_scelta.split(" ")[1])
+
+    km_sett_tot = 0.0
+    min_sett_tot = 0
+    carico_prev_tot = 0.0
+    carico_eff_tot = 0.0
+    ritmi_sett = []
+    bpm_max_sett = 0
+    bpm_min_sett = 999
+
+    for giorno in range(1, 8):
+        s_n = str(num_sett)
+        g_n = str(giorno)
+        k_p = "p_km_s" + s_n + "_g" + g_n
+        k_e = "e_km_s" + s_n + "_g" + g_n
+        m_p = "p_min_s" + s_n + "_g" + g_n
+        m_e = "e_min_s" + s_n + "_g" + g_n
+        s_p = "p_sf_s" + s_n + "_g" + g_n
+        s_e = "e_sf_s" + s_n + "_g" + g_n
+        r_
