@@ -4,7 +4,7 @@ import os
 
 st.set_page_config(page_title="Tool Allenamento - 28 Giorni", layout="wide")
 
-# --- CSS PERSONALIZZATO PER FORZARE SFONDO BIANCO E SCRITTE NERE NEI MENU ---
+# --- CSS PERSONALIZZATO PER CONTRASTO PERFETTO ANCHE SUI PULSANTI E SULLA PASSWORD ---
 sfondo_css = """
 <style>
 .stApp {
@@ -27,7 +27,7 @@ div.stExpander, div.stTabs [data-baseweb="tab-panel"], section[data-testid="stSi
 h1, h2, h3, h4, h5, h6, p, label, span, div {
     color: #111111 !important;
 }
-/* Forziamo campi input, tendine e menu a tendina aperti a sfondo bianco e testo nero */
+/* Campi di input e menu a tendina */
 input, select, textarea, div[data-baseweb="select"] > div, [data-baseweb="popover"], [data-baseweb="menu"], [role="listbox"] {
     background-color: #ffffff !important;
     color: #000000 !important;
@@ -36,6 +36,20 @@ input, select, textarea, div[data-baseweb="select"] > div, [data-baseweb="popove
 [role="option"] div, [role="option"] span {
     color: #000000 !important;
     -webkit-text-fill-color: #000000 !important;
+}
+/* Stile per i pulsanti (Accedi, Salva, Elimina) per garantirne la leggibilità assoluta */
+button, button p, div[data-testid="stButton"] > button {
+    background-color: #d9534f !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    font-weight: bold !important;
+    border-radius: 8px !important;
+    border: none !important;
+}
+/* Occhiello password e pulsanti interni agli input */
+button[aria-label="Show password"], button[aria-label="Hide password"] {
+    background-color: #e9ecef !important;
+    color: #000000 !important;
 }
 </style>
 """
