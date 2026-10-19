@@ -5,7 +5,6 @@ import pandas as pd
 
 st.set_page_config(page_title="Tool Allenamento - 28 Giorni", layout="wide")
 
-# --- CSS PERSONALIZZATO PER CONTRASTO E STILE TABELLA EXCEL ---
 sfondo_css = """
 <style>
 .stApp {
@@ -55,14 +54,13 @@ st.markdown(sfondo_css, unsafe_allow_html=True)
 
 st.title("🏃‍♂️ Dashboard Allenamento (28 Giorni)")
 
-# --- LOGIN ---
 if "autenticato" not in st.session_state:
     st.session_state.autenticato = False
 
 if not st.session_state.autenticato:
     st.subheader("🔒 Accesso Riservato")
-    password_inserita = st.text_input("Inserisci la password per sbloccare l'app:", type="password", key="pass_input")
-    if st.button("Accedi"):
+    password_inserita = st.text_input("Inserisci la password per sbloccare l'app:", type="password", key="pass_input_login")
+    if st.button("Accedi", key="btn_login_submit"):
         if password_inserita == "allenamento2026":
             st.session_state.autenticato = True
             st.rerun()
@@ -127,7 +125,7 @@ with tab_scelta1:
         titolo_predefinito = st.session_state.edit_data.get("titolo", "")
         st.info(f"✏️ Stai modificando il piano: **{titolo_predefinito}**")
 
-    settimana_scelta = st.selectbox("Seleziona la Settimana:", ["Settimana 1", "Settimana 2", "Settimana 3", "Settimana 4"])
+    settimana_scelta = st.selectbox("Seleziona la Settimana:", ["Settimana 1", "Settimana 2", "Settimana 3", "Settimana 4"], key="sel_settimana_principale")
     num_sett = int(settimana_scelta.split(" ")[1])
 
     km_sett_tot = 0.0
@@ -147,4 +145,11 @@ with tab_scelta1:
         m_e = "e_min_s" + s_n + "_g" + g_n
         s_p = "p_sf_s" + s_n + "_g" + g_n
         s_e = "e_sf_s" + s_n + "_g" + g_n
-        r_
+        r_p_key = "rit_p_s" + s_n + "_g" + g_n
+        r_key = "rit_s" + s_n + "_g" + g_n
+        rc_key = "rit_calc_s" + s_n + "_g" + g_n
+        rc_p_key = "rit_p_calc_s" + s_n + "_g" + g_n
+        bmax_k = "bmax_s" + s_n + "_g" + g_n
+        bmin_k = "bmin_s" + s_n + "_g" + g_n
+        cad_k = "cad_s" + s_n + "_g" + g_n
+        desc_k = "desc_s" + s_n
