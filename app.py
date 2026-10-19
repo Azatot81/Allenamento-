@@ -2,8 +2,9 @@ import streamlit as st
 import json
 import os
 
-st.set_page_config(page_title="Tool Allenamento Tablet - 28 Giorni", layout="wide")
+st.set_page_config(page_title="Tool Allenamento - 28 Giorni", layout="wide")
 
+# --- CSS PERSONALIZZATO PER CONTRASTO PERFETTO SU SFONDO ROSA ---
 sfondo_css = """
 <style>
 .stApp {
@@ -17,10 +18,25 @@ background-repeat: no-repeat;
     padding-bottom: 2rem;
     max-width: 95% !important;
 }
+div.stExpander, div.stTabs [data-baseweb="tab-panel"], section[data-testid="stSidebar"] {
+    background-color: rgba(255, 255, 255, 0.92) !important;
+    border-radius: 10px;
+    padding: 15px;
+    color: #000000 !important;
+}
+h1, h2, h3, h4, h5, h6, p, label, span, div {
+    color: #111111 !important;
+}
+input, select, textarea, div[data-baseweb="select"] > div {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+}
 </style>
 """
 st.markdown(sfondo_css, unsafe_allow_html=True)
 
+# --- 1. PROTEZIONE PASSWORD ---
 st.sidebar.header("Accesso Riservato")
 password_inserita = st.sidebar.text_input("Inserisci la password:", type="password")
 if password_inserita != "allenamento2026":
@@ -28,7 +44,7 @@ if password_inserita != "allenamento2026":
     st.stop()
 st.sidebar.success("Accesso Autorizzato!")
 
-st.title("🏃‍♂️ Dashboard Allenamento - Vista Tablet (28 Giorni)")
+st.title("🏃‍♂️ Dashboard Allenamento (28 Giorni)")
 
 FILE_DATI = "storico_28giorni_carichi.json"
 
@@ -44,9 +60,8 @@ def salva_dati(dati):
 
 storico = carica_dati()
 
-tab_scelta1, tab_scelta2, tab_scelta3 = st.tabs([
-    "📅 Gestione 4 Settimane", 
-    "⚡ Calcolo Rapido", 
+tab_scelta1, tab_scelta2 = st.tabs([
+    "📅 Gestione 4 Settimane (28 Giorni)", 
     "📂 Archivio Salvato"
 ])
 
@@ -57,20 +72,20 @@ for m in range(2, 7):
             ritmi_disponibili.append(f"{m}:{s:02d}")
 
 def mostra_banner_sforzo(valore):
-    colori = {
-        1: ("#d4edda", "#155724", "🟢 Molto Leggero (Rigenerante)"),
-        2: ("#d4edda", "#155724", "🟢 Leggero (Corsa lenta)"),
-        3: ("#d1ecf1", "#0c5460", "🔵 Moderato (Fondo lungo)"),
-        4: ("#d1ecf1", "#0c5460", "🔵 Medio-Basso (Progressivo)"),
-        5: ("#fff3cd", "#856404", "🟡 Medio (Ritmo medio)"),
-        6: ("#fff3cd", "#856404", "🟡 Impegnativo (Soglia)"),
-        7: ("#ffeeba", "#856404", "🟠 Forte (Corto veloce)"),
-        8: ("#f8d7da", "#721c24", "🔴 Molto Forte (Ripetute brevi)"),
-        9: ("#f5c6cb", "#721c24", "🔴 Estenuante (Massima potenza)"),
-        10: ("#dc3545", "#ffffff", "🔥 Massimale (Gara)")
+    colori_sforzo = {
+        1: "🟢 Molto Leggero (Rigenerante)",
+        2: "🟢 Leggero (Corsa lenta)",
+        3: "🔵 Moderato (Fondo lungo)",
+        4: "🔵 Medio-Basso (Progressivo)",
+        5: "🟡 Medio (Ritmo medio)",
+        6: "🟡 Impegnativo (Soglia)",
+        7: "🟠 Forte (Corto veloce)",
+        8: "🔴 Molto Forte (Ripetute brevi)",
+        9: "🔴 Estenuante (Massima potenza)",
+        10: "🔥 Massimale (Gara)"
     }
-    bg, fg, testo = colori.get(valore, ("#e2e3e5", "#383d41", "Neutro"))
-    st.markdown(f'<div style="background-color: {bg}; color: {fg}; padding: 8px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 14px;">{testo}</div>', unsafe_allow_html=True)
+    desc = colori_sforzo.get(valore, "Normale")
+    st.markdown(f'<div style="background-color: #fff3cd; color: #000000; padding: 8px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 14px; border: 1px solid #ffeeba;">🟡 Sforzo {valore}: {desc}</div>', unsafe_allow_html=True)
 
 with tab_scelta1:
     st.subheader("📋 Ciclo Mensile: 4 Settimane x 7 Giorni")
@@ -95,6 +110,7 @@ with tab_scelta1:
         s_p = "p_sf_s" + s_n + "_g" + g_n
         s_e = "e_sf_s" + s_n + "_g" + g_n
         r_key = "rit_s" + s_n + "_g" + g_n
+        rc_key = "rit_calc_s" + s_n + "_g" + g_n
         bmax_k = "bmax_s" + s_n + "_g" + g_n
         bmin_k = "bmin_s" + s_n + "_g" + g_n
         cad_k = "cad_s" + s_n + "_g" + g_n
@@ -117,6 +133,18 @@ with tab_scelta1:
                 km_eff = st.number_input("Km Effettivi", min_value=0.0, value=0.0, step=0.1, key=k_e)
                 min_eff = st.number_input("Minuti Effettivi", min_value=0, max_value=300, value=0, key=m_e)
                 rit_eff = st.selectbox("Ritmo Effettivo", ritmi_disponibili, key=r_key)
+                
+                # Calcolo automatico o inserimento manuale del ritmo
+                ritmo_calcolato_auto = "--:--"
+                if km_eff > 0 and min_eff > 0:
+                    sec_tot_calc = (min_eff * 60) / km_eff
+                    m_calc = int(sec_tot_calc // 60)
+                    s_calc = int(sec_tot_calc % 60)
+                    ritmo_calcolato_auto = f"{m_calc}:{s_calc:02d}"
+
+                st.markdown(f"⚡ **Ritmo Calcolato Automatico:** `{ritmo_calcolato_auto} /km`")
+                ritmo_inserito_utente = st.text_input("O inserisci/correggi il ritmo manualmente (es. 4:30):", key=rc_key)
+
                 st.markdown("**Sforzo Effettivo (1-10)**")
                 sf_eff = st.selectbox("", list(range(1, 11)), index=4, key=s_e)
                 mostra_banner_sforzo(sf_eff)
@@ -130,10 +158,16 @@ with tab_scelta1:
             c_prev = min_prev * sf_prev if min_prev > 0 else int(km_prev * 10 * sf_prev)
             c_eff = min_eff * sf_eff if min_eff > 0 else int(km_eff * 10 * sf_eff)
 
+            # Scegliamo quale ritmo considerare per le medie (priorità al manuale inserito, poi automatico, poi tendina)
+            ritmo_finale_scelto = ritmo_inserito_utente.strip() if ritmo_inserito_utente.strip() else (ritmo_calcolato_auto if ritmo_calcolato_auto != "--:--" else rit_eff)
+            
             sec_r = 0
-            if rit_eff != "Seleziona ritmo...":
-                mr, sr = map(int, rit_eff.split(":"))
-                sec_r = mr * 60 + sr
+            if ritmo_finale_scelto != "Seleziona ritmo..." and ":" in ritmo_finale_scelto:
+                try:
+                    mr, sr = map(int, ritmo_finale_scelto.split(":"))
+                    sec_r = mr * 60 + sr
+                except:
+                    sec_r = 0
 
             km_sett_tot += km_eff
             min_sett_tot += min_eff
@@ -147,7 +181,7 @@ with tab_scelta1:
             if b_min > 0 and b_min < bpm_min_sett:
                 bpm_min_sett = b_min
 
-            st.info(f"🔹 Carico Previsto: **{c_prev} pt** | 🔸 Carico Effettivo: **{c_eff} pt**")
+            st.info(f"🔹 Carico Previsto: **{c_prev} pt** | 🔸 Carico Effettivo: **{c_eff} pt** | ⏱️ Ritmo Usato: **{ritmo_finale_scelto} /km**")
 
     st.markdown("---")
     st.subheader(f"📊 Riepilogo - Settimana {num_sett}")
@@ -181,16 +215,6 @@ with tab_scelta1:
             st.error("Inserisci un nome valido.")
 
 with tab_scelta2:
-    st.subheader("⚡ Calcolo Rapido")
-    c1, c2, c3 = st.columns(3)
-    with c1: km_t = st.number_input("Km", 0.0, 100.0, 10.0, 0.1)
-    with c2: m_t = st.number_input("Minuti", 0, 300, 50)
-    with c3: r_t = st.selectbox("Ritmo", ritmi_disponibili, key="r_test")
-    if km_t > 0 and m_t > 0:
-        sec_m = (m_t * 60) / km_t
-        st.success(f"⚡ Ritmo: {int(sec_m//60)}:{int(sec_m%60):02d} /km")
-
-with tab_scelta3:
     st.subheader("📂 Archivio")
     if not storico:
         st.info("Nessun elemento salvato.")
