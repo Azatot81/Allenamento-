@@ -18,10 +18,10 @@ background-repeat: no-repeat;
     padding-bottom: 2rem;
     max-width: 95% !important;
 }
-div.stExpander, div.stTabs [data-baseweb="tab-panel"], section[data-testid="stSidebar"] {
-    background-color: rgba(255, 255, 255, 0.92) !important;
+div.stExpander, div.stTabs [data-baseweb="tab-panel"], section[data-testid="stSidebar"], div[data-testid="stVerticalBlock"] > div {
+    background-color: rgba(255, 255, 255, 0.94) !important;
     border-radius: 10px;
-    padding: 15px;
+    padding: 12px;
     color: #000000 !important;
 }
 h1, h2, h3, h4, h5, h6, p, label, span, div {
@@ -36,15 +36,18 @@ input, select, textarea, div[data-baseweb="select"] > div {
 """
 st.markdown(sfondo_css, unsafe_allow_html=True)
 
-# --- 1. PROTEZIONE PASSWORD ---
-st.sidebar.header("Accesso Riservato")
-password_inserita = st.sidebar.text_input("Inserisci la password:", type="password")
-if password_inserita != "allenamento2026":
-    st.warning("⚠️ Inserisci la password corretta nella barra laterale.")
-    st.stop()
-st.sidebar.success("Accesso Autorizzato!")
-
 st.title("🏃‍♂️ Dashboard Allenamento (28 Giorni)")
+
+# --- 1. PROTEZIONE PASSWORD IN PRIMO PIANO ---
+container_pass = st.container()
+with container_pass:
+    st.subheader("🔒 Accesso Riservato")
+    password_inserita = st.text_input("Inserisci la password per sbloccare l'app:", type="password", key="pass_main")
+    if password_inserita != "allenamento2026":
+        st.warning("⚠️ Inserisci la password corretta per accedere al programma.")
+        st.stop()
+    else:
+        st.success("✅ Accesso Autorizzato!")
 
 FILE_DATI = "storico_28giorni_carichi.json"
 
@@ -134,7 +137,6 @@ with tab_scelta1:
                 min_eff = st.number_input("Minuti Effettivi", min_value=0, max_value=300, value=0, key=m_e)
                 rit_eff = st.selectbox("Ritmo Effettivo", ritmi_disponibili, key=r_key)
                 
-                # Calcolo automatico o inserimento manuale del ritmo
                 ritmo_calcolato_auto = "--:--"
                 if km_eff > 0 and min_eff > 0:
                     sec_tot_calc = (min_eff * 60) / km_eff
@@ -158,7 +160,6 @@ with tab_scelta1:
             c_prev = min_prev * sf_prev if min_prev > 0 else int(km_prev * 10 * sf_prev)
             c_eff = min_eff * sf_eff if min_eff > 0 else int(km_eff * 10 * sf_eff)
 
-            # Scegliamo quale ritmo considerare per le medie (priorità al manuale inserito, poi automatico, poi tendina)
             ritmo_finale_scelto = ritmo_inserito_utente.strip() if ritmo_inserito_utente.strip() else (ritmo_calcolato_auto if ritmo_calcolato_auto != "--:--" else rit_eff)
             
             sec_r = 0
