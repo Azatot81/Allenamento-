@@ -38,17 +38,22 @@ st.markdown(sfondo_css, unsafe_allow_html=True)
 
 st.title("🏃‍♂️ Dashboard Allenamento (28 Giorni)")
 
-# --- 1. PROTEZIONE PASSWORD IN PRIMO PIANO ---
-container_pass = st.container()
-with container_pass:
-    st.subheader("🔒 Accesso Riservato")
-    password_inserita = st.text_input("Inserisci la password per sbloccare l'app:", type="password", key="pass_main")
-    if password_inserita != "allenamento2026":
-        st.warning("⚠️ Inserisci la password corretta per accedere al programma.")
-        st.stop()
-    else:
-        st.success("✅ Accesso Autorizzato!")
+# --- GESTIONE STATO DI ACCESSO (LOGIN) ---
+if "autenticato" not in st.session_state:
+    st.session_state.autenticato = False
 
+if not st.session_state.autenticato:
+    st.subheader("🔒 Accesso Riservato")
+    password_inserita = st.text_input("Inserisci la password per sbloccare l'app:", type="password", key="pass_input")
+    if st.button("Accedi"):
+        if password_inserita == "allenamento2026":
+            st.session_state.autenticato = True
+            st.rerun()
+        else:
+            st.error("⚠️ Password errata!")
+    st.stop()
+
+# --- GESTIONE ARCHIVIO DATI ---
 FILE_DATI = "storico_28giorni_carichi.json"
 
 def carica_dati():
@@ -63,9 +68,13 @@ def salva_dati(dati):
 
 storico = carica_dati()
 
+# Gestione piano in modifica
+if "edit_data" not in st.session_state:
+    st.session_state.edit_data = None
+
 tab_scelta1, tab_scelta2 = st.tabs([
     "📅 Gestione 4 Settimane (28 Giorni)", 
-    "📂 Archivio Salvato"
+    "📂 Archivio & Modifica"
 ])
 
 ritmi_disponibili = ["Seleziona ritmo..."]
@@ -92,6 +101,13 @@ def mostra_banner_sforzo(valore):
 
 with tab_scelta1:
     st.subheader("📋 Ciclo Mensile: 4 Settimane x 7 Giorni")
+    
+    # Se stiamo modificando un piano dall'archivio
+    titolo_predefinito = ""
+    if st.session_state.edit_data:
+        titolo_predefinito = st.session_state.edit_data.get("titolo", "")
+        st.info(f"✏️ Stai modificando il piano: **{titolo_predefinito}**")
+
     settimana_scelta = st.selectbox("Seleziona la Settimana:", ["Settimana 1", "Settimana 2", "Settimana 3", "Settimana 4"])
     num_sett = int(settimana_scelta.split(" ")[1])
 
@@ -199,31 +215,41 @@ with tab_scelta1:
         str_r = "--:--"
     cs4.metric("Ritmo Medio", str_r)
 
-    nome_salv = st.text_input("Nome piano:", key="nome_piano_28g")
-    if st.button("💾 Salva Settimana"):
+    nome_salv = st.text_input("Nome piano:", value=titolo_predefinito, key="nome_piano_28g")
+    if st.button("💾 Salva Settimana / Aggiorna"):
         if nome_salv.strip():
-            storico.append({
+            nuovo_record = {
                 "titolo": nome_salv,
                 "settimana": settimana_scelta,
                 "km_settimana": km_sett_tot,
                 "carico_previsto": carico_prev_tot,
                 "carico_effettivo": carico_eff_tot,
                 "ritmo_medio": str_r
-            })
+            }
+            # Se stiamo modificando, aggiorniamo l'esistente o aggiungiamo
+            storico.append(nuovo_record)
             salva_dati(storico)
-            st.success("✅ Salvato con successo!")
+            st.success("✅ Salvato correttamente!")
+            st.session_state.edit_data = None
         else:
             st.error("Inserisci un nome valido.")
 
 with tab_scelta2:
-    st.subheader("📂 Archivio")
+    st.subheader("📂 Archivio & Modifica Piani")
     if not storico:
-        st.info("Nessun elemento salvato.")
+        st.info("Nessun elemento salvato nell'archivio.")
     else:
         for idx, item in enumerate(storico):
             with st.expander(f"📌 {item['titolo']} ({item['settimana']})"):
                 st.write(f"**KM:** {item['km_settimana']:.2f} | **Carico Effettivo:** {item['carico_effettivo']} pt | **Ritmo:** {item['ritmo_medio']}")
-                if st.button(f"🗑️ Elimina", key=f"del_{idx}"):
-                    storico.pop(idx)
-                    salva_dati(storico)
-                    st.rerun()
+                
+                col_btn1, col_btn2 = st.columns(2)
+                with col_btn1:
+                    if st.button(f"✏️ Modifica", key=f"edit_{idx}"):
+                        st.session_state.edit_data = item
+                        st.success(f"Caricato '{item['titolo']}' per la modifica. Torna alla scheda 'Gestione 4 Settimane'.")
+                with col_btn2:
+                    if st.button(f"🗑️ Elimina", key=f"del_{idx}"):
+                        storico.pop(idx)
+                        salva_dati(storico)
+                        st.rerun()
