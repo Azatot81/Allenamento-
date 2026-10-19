@@ -14,12 +14,12 @@ background-position: center;
 background-repeat: no-repeat;
 }
 .block-container {
-    padding-top: 2rem;
+    padding-top: 1.5rem;
     padding-bottom: 2rem;
     max-width: 95% !important;
 }
 div.stExpander, div.stTabs [data-baseweb="tab-panel"], section[data-testid="stSidebar"], div[data-testid="stVerticalBlock"] > div {
-    background-color: rgba(255, 255, 255, 0.94) !important;
+    background-color: rgba(255, 255, 255, 0.95) !important;
     border-radius: 10px;
     padding: 12px;
     color: #000000 !important;
@@ -38,7 +38,7 @@ st.markdown(sfondo_css, unsafe_allow_html=True)
 
 st.title("🏃‍♂️ Dashboard Allenamento (28 Giorni)")
 
-# --- GESTIONE STATO DI ACCESSO (LOGIN) ---
+# --- 1. LOGIN ---
 if "autenticato" not in st.session_state:
     st.session_state.autenticato = False
 
@@ -53,13 +53,16 @@ if not st.session_state.autenticato:
             st.error("⚠️ Password errata!")
     st.stop()
 
-# --- GESTIONE ARCHIVIO DATI ---
+# --- GESTIONE ARCHIVIO LOCAL / DOWNLOAD ---
 FILE_DATI = "storico_28giorni_carichi.json"
 
 def carica_dati():
     if os.path.exists(FILE_DATI):
-        with open(FILE_DATI, "r") as f:
-            return json.load(f)
+        try:
+            with open(FILE_DATI, "r") as f:
+                return json.load(f)
+        except:
+            return []
     return []
 
 def salva_dati(dati):
@@ -68,13 +71,12 @@ def salva_dati(dati):
 
 storico = carica_dati()
 
-# Gestione piano in modifica
 if "edit_data" not in st.session_state:
     st.session_state.edit_data = None
 
 tab_scelta1, tab_scelta2 = st.tabs([
     "📅 Gestione 4 Settimane (28 Giorni)", 
-    "📂 Archivio & Modifica"
+    "📂 Archivio & Backup Locale"
 ])
 
 ritmi_disponibili = ["Seleziona ritmo..."]
@@ -102,7 +104,6 @@ def mostra_banner_sforzo(valore):
 with tab_scelta1:
     st.subheader("📋 Ciclo Mensile: 4 Settimane x 7 Giorni")
     
-    # Se stiamo modificando un piano dall'archivio
     titolo_predefinito = ""
     if st.session_state.edit_data:
         titolo_predefinito = st.session_state.edit_data.get("titolo", "")
@@ -128,8 +129,10 @@ with tab_scelta1:
         m_e = "e_min_s" + s_n + "_g" + g_n
         s_p = "p_sf_s" + s_n + "_g" + g_n
         s_e = "e_sf_s" + s_n + "_g" + g_n
+        r_p_key = "rit_p_s" + s_n + "_g" + g_n
         r_key = "rit_s" + s_n + "_g" + g_n
         rc_key = "rit_calc_s" + s_n + "_g" + g_n
+        rc_p_key = "rit_p_calc_s" + s_n + "_g" + g_n
         bmax_k = "bmax_s" + s_n + "_g" + g_n
         bmin_k = "bmin_s" + s_n + "_g" + g_n
         cad_k = "cad_s" + s_n + "_g" + g_n
@@ -143,6 +146,17 @@ with tab_scelta1:
                 st.markdown("#### 📋 Previsto")
                 km_prev = st.number_input("Km Previsti", min_value=0.0, value=0.0, step=0.1, key=k_p)
                 min_prev = st.number_input("Minuti Previsti", min_value=0, max_value=300, value=0, key=m_p)
+                rit_prev = st.selectbox("Ritmo Previsto", ritmi_disponibili, key=r_p_key)
+                
+                # Calcolo Ritmo Previsto Automatico / Manuale
+                r_prev_auto = "--:--"
+                if km_prev > 0 and min_prev > 0:
+                    sec_p_auto = (min_prev * 60) / km_prev
+                    r_prev_auto = f"{int(sec_p_auto // 60)}:{int(sec_p_auto % 60):02d}"
+                
+                st.markdown(f"⚡ **Ritmo Previsto Calcolato:** `{r_prev_auto} /km`")
+                st.text_input("Oppure ritmo previsto manuale:", key=rc_p_key)
+
                 st.markdown("**Sforzo Previsto (1-10)**")
                 sf_prev = st.selectbox("", list(range(1, 11)), index=4, key=s_p)
                 mostra_banner_sforzo(sf_prev)
@@ -153,6 +167,7 @@ with tab_scelta1:
                 min_eff = st.number_input("Minuti Effettivi", min_value=0, max_value=300, value=0, key=m_e)
                 rit_eff = st.selectbox("Ritmo Effettivo", ritmi_disponibili, key=r_key)
                 
+                # Calcolo Ritmo Effettivo Automatico / Manuale
                 ritmo_calcolato_auto = "--:--"
                 if km_eff > 0 and min_eff > 0:
                     sec_tot_calc = (min_eff * 60) / km_eff
@@ -160,8 +175,8 @@ with tab_scelta1:
                     s_calc = int(sec_tot_calc % 60)
                     ritmo_calcolato_auto = f"{m_calc}:{s_calc:02d}"
 
-                st.markdown(f"⚡ **Ritmo Calcolato Automatico:** `{ritmo_calcolato_auto} /km`")
-                ritmo_inserito_utente = st.text_input("O inserisci/correggi il ritmo manualmente (es. 4:30):", key=rc_key)
+                st.markdown(f"⚡ **Ritmo Effettivo Calcolato:** `{ritmo_calcolato_auto} /km`")
+                ritmo_inserito_utente = st.text_input("Oppure ritmo effettivo manuale (es. 4:30):", key=rc_key)
 
                 st.markdown("**Sforzo Effettivo (1-10)**")
                 sf_eff = st.selectbox("", list(range(1, 11)), index=4, key=s_e)
@@ -226,7 +241,6 @@ with tab_scelta1:
                 "carico_effettivo": carico_eff_tot,
                 "ritmo_medio": str_r
             }
-            # Se stiamo modificando, aggiorniamo l'esistente o aggiungiamo
             storico.append(nuovo_record)
             salva_dati(storico)
             st.success("✅ Salvato correttamente!")
@@ -234,8 +248,35 @@ with tab_scelta1:
         else:
             st.error("Inserisci un nome valido.")
 
+# ==============================================================================
+# SCHEDA 2: ARCHIVIO & DOWNLOAD / BACKUP LOCALE SUL TABLET
+# ==============================================================================
 with tab_scelta2:
-    st.subheader("📂 Archivio & Modifica Piani")
+    st.subheader("📂 Archivio & Gestione Backup Locale")
+    
+    # 📥 DOWNLOAD FILE BACKUP
+    json_string = json.dumps(storico, indent=4)
+    st.download_button(
+        label="📥 Scarica Backup Archivio sul Tablet/Smartphone (.json)",
+        data=json_string,
+        file_name="backup_allenamenti.json",
+        mime="application/json"
+    )
+    
+    st.markdown("---")
+    # 📤 CARICA BACKUP DA DISPOSITIVO
+    uploaded_file = st.file_uploader("📤 Ripristina Backup da File JSON salvato sul Tablet:", type=["json"])
+    if uploaded_file is not None:
+        try:
+            dati_caricati = json.load(uploaded_file)
+            if st.button("🔄 Conferma e Ripristina Backup"):
+                salva_dati(dati_caricati)
+                st.success("✅ Backup ripristinato con successo!")
+                st.rerun()
+        except Exception as e:
+            st.error("Errore nella lettura del file JSON.")
+
+    st.markdown("---")
     if not storico:
         st.info("Nessun elemento salvato nell'archivio.")
     else:
@@ -247,7 +288,7 @@ with tab_scelta2:
                 with col_btn1:
                     if st.button(f"✏️ Modifica", key=f"edit_{idx}"):
                         st.session_state.edit_data = item
-                        st.success(f"Caricato '{item['titolo']}' per la modifica. Torna alla scheda 'Gestione 4 Settimane'.")
+                        st.success(f"Caricato '{item['titolo']}'. Torna alla scheda 'Gestione 4 Settimane'.")
                 with col_btn2:
                     if st.button(f"🗑️ Elimina", key=f"del_{idx}"):
                         storico.pop(idx)
