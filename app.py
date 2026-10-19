@@ -4,7 +4,7 @@ import os
 
 st.set_page_config(page_title="Tool Allenamento - 28 Giorni", layout="wide")
 
-# --- CSS PERSONALIZZATO PER CONTRASTO PERFETTO SU SFONDO ROSA ---
+# --- CSS PERSONALIZZATO PER FORZARE SFONDO BIANCO E SCRITTE NERE NEI MENU ---
 sfondo_css = """
 <style>
 .stApp {
@@ -19,7 +19,7 @@ background-repeat: no-repeat;
     max-width: 95% !important;
 }
 div.stExpander, div.stTabs [data-baseweb="tab-panel"], section[data-testid="stSidebar"], div[data-testid="stVerticalBlock"] > div {
-    background-color: rgba(255, 255, 255, 0.95) !important;
+    background-color: rgba(255, 255, 255, 0.96) !important;
     border-radius: 10px;
     padding: 12px;
     color: #000000 !important;
@@ -27,8 +27,13 @@ div.stExpander, div.stTabs [data-baseweb="tab-panel"], section[data-testid="stSi
 h1, h2, h3, h4, h5, h6, p, label, span, div {
     color: #111111 !important;
 }
-input, select, textarea, div[data-baseweb="select"] > div {
+/* Forziamo campi input, tendine e menu a tendina aperti a sfondo bianco e testo nero */
+input, select, textarea, div[data-baseweb="select"] > div, [data-baseweb="popover"], [data-baseweb="menu"], [role="listbox"] {
     background-color: #ffffff !important;
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+}
+[role="option"] div, [role="option"] span {
     color: #000000 !important;
     -webkit-text-fill-color: #000000 !important;
 }
@@ -38,7 +43,7 @@ st.markdown(sfondo_css, unsafe_allow_html=True)
 
 st.title("🏃‍♂️ Dashboard Allenamento (28 Giorni)")
 
-# --- 1. LOGIN ---
+# --- LOGIN ---
 if "autenticato" not in st.session_state:
     st.session_state.autenticato = False
 
@@ -53,7 +58,6 @@ if not st.session_state.autenticato:
             st.error("⚠️ Password errata!")
     st.stop()
 
-# --- GESTIONE ARCHIVIO LOCAL / DOWNLOAD ---
 FILE_DATI = "storico_28giorni_carichi.json"
 
 def carica_dati():
@@ -148,7 +152,6 @@ with tab_scelta1:
                 min_prev = st.number_input("Minuti Previsti", min_value=0, max_value=300, value=0, key=m_p)
                 rit_prev = st.selectbox("Ritmo Previsto", ritmi_disponibili, key=r_p_key)
                 
-                # Calcolo Ritmo Previsto Automatico / Manuale
                 r_prev_auto = "--:--"
                 if km_prev > 0 and min_prev > 0:
                     sec_p_auto = (min_prev * 60) / km_prev
@@ -167,7 +170,6 @@ with tab_scelta1:
                 min_eff = st.number_input("Minuti Effettivi", min_value=0, max_value=300, value=0, key=m_e)
                 rit_eff = st.selectbox("Ritmo Effettivo", ritmi_disponibili, key=r_key)
                 
-                # Calcolo Ritmo Effettivo Automatico / Manuale
                 ritmo_calcolato_auto = "--:--"
                 if km_eff > 0 and min_eff > 0:
                     sec_tot_calc = (min_eff * 60) / km_eff
@@ -248,13 +250,9 @@ with tab_scelta1:
         else:
             st.error("Inserisci un nome valido.")
 
-# ==============================================================================
-# SCHEDA 2: ARCHIVIO & DOWNLOAD / BACKUP LOCALE SUL TABLET
-# ==============================================================================
 with tab_scelta2:
     st.subheader("📂 Archivio & Gestione Backup Locale")
     
-    # 📥 DOWNLOAD FILE BACKUP
     json_string = json.dumps(storico, indent=4)
     st.download_button(
         label="📥 Scarica Backup Archivio sul Tablet/Smartphone (.json)",
@@ -264,7 +262,6 @@ with tab_scelta2:
     )
     
     st.markdown("---")
-    # 📤 CARICA BACKUP DA DISPOSITIVO
     uploaded_file = st.file_uploader("📤 Ripristina Backup da File JSON salvato sul Tablet:", type=["json"])
     if uploaded_file is not None:
         try:
