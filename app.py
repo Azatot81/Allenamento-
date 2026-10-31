@@ -15,13 +15,13 @@ background-repeat: no-repeat;
 }
 .block-container {
     padding-top: 1rem;
-    padding-bottom: 2rem;
+    padding-bottom: 3rem;
     max-width: 95% !important;
 }
 div.stExpander, div.stTabs [data-baseweb="tab-panel"], section[data-testid="stSidebar"], div[data-testid="stVerticalBlock"] > div {
-    background-color: rgba(255, 255, 255, 0.97) !important;
+    background-color: rgba(255, 255, 255, 0.98) !important;
     border-radius: 10px;
-    padding: 12px;
+    padding: 15px;
     color: #000000 !important;
 }
 h1, h2, h3, h4, h5, h6, p, label, span, div {
@@ -154,37 +154,3 @@ with tab_scelta1:
         cad_k = "cad_s" + s_n + "_g" + g_n
         desc_k = "desc_s" + s_n + "_g" + g_n
 
-        with st.expander(f"📅 Giorno {giorno} - Settimana {num_sett}", expanded=(giorno == 1)):
-            st.text_input(f"Descrizione Allenamento G{giorno}", key=desc_k)
-            
-            st.markdown(f"#### 📋 Allenamento Previsto (Giorno {giorno})")
-            km_prev = st.number_input(f"Km Previsti G{giorno}", min_value=0.0, value=0.0, step=0.1, key=k_p)
-            min_prev = st.number_input(f"Minuti Previsti G{giorno}", min_value=0, max_value=300, value=0, key=m_p)
-            rit_prev = st.selectbox(f"Ritmo Previsto G{giorno}", ritmi_disponibili, key=r_p_key)
-            
-            r_prev_auto = "--:--"
-            if km_prev > 0 and min_prev > 0:
-                sec_p_auto = (min_prev * 60) / km_prev
-                r_prev_auto = f"{int(sec_p_auto // 60)}:{int(sec_p_auto % 60):02d}"
-            
-            st.markdown("⚡ **Ritmo Previsto Calcolato:** `" + r_prev_auto + " /km`")
-            st.text_input(f"Ritmo previsto manuale G{giorno}", key=rc_p_key)
-            st.markdown(f"**Sforzo Previsto G{giorno} (1-10)**")
-            sf_prev = st.selectbox(f"Sforzo P G{giorno}", list(range(1, 11)), index=4, key=s_p)
-            mostra_banner_sforzo(sf_prev)
-            
-            st.markdown("---")
-            st.markdown(f"#### ✅ Allenamento Effettivo (Giorno {giorno})")
-            km_eff = st.number_input(f"Km Effettivi G{giorno}", min_value=0.0, value=0.0, step=0.1, key=k_e)
-            min_eff = st.number_input(f"Minuti Effettivi G{giorno}", min_value=0, max_value=300, value=0, key=m_e)
-            rit_eff = st.selectbox(f"Ritmo Effettivo G{giorno}", ritmi_disponibili, key=r_key)
-            
-            ritmo_calcolato_auto = "--:--"
-            if km_eff > 0 and min_eff > 0:
-                sec_tot_calc = (min_eff * 60) / km_eff
-                m_calc = int(sec_tot_calc // 60)
-                s_calc = int(sec_tot_calc % 60)
-                ritmo_calcolato_auto = f"{m_calc}:{s_calc:02d}"
-
-            st.markdown("⚡ **Ritmo Effettivo Calcolato:** `" + ritmo_calcolato_auto + " /km`")
-            ritmo_inserito_utente = st
