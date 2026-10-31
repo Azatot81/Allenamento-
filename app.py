@@ -86,4 +86,6 @@ def salva_dati(dati):
 storico = carica_dati()
 
 if "edit_data" not in st.session_state:
-    st.session_
+    st.session_state.edit_data = None
+
+tab_scelta1, tab_scelta2, tab_scelta3 = st.tabs(
