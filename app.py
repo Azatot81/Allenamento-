@@ -52,17 +52,38 @@ button[aria-label="Show password"], button[aria-label="Hide password"] {
 """
 st.markdown(sfondo_css, unsafe_allow_html=True)
 
-st.title("🏃‍♂️ Dashboard Allenamento (28 Giorni)")
+st.title("Dashboard Allenamento (28 Giorni)")
 
 if "autenticato" not in st.session_state:
     st.session_state.autenticato = False
 
 if not st.session_state.autenticato:
-    st.subheader("🔒 Accesso Riservato")
+    st.subheader("Accesso Riservato")
     password_inserita = st.text_input("Inserisci la password per sbloccare l'app:", type="password", key="pass_input_login")
     if st.button("Accedi", key="btn_login_submit"):
         if password_inserita == "allenamento2026":
             st.session_state.autenticato = True
             st.rerun()
         else:
-            st.error("⚠️ Password err
+            st.error("Password errata!")
+    st.stop()
+
+FILE_DATI = "storico_28giorni_carichi.json"
+
+def carica_dati():
+    if os.path.exists(FILE_DATI):
+        try:
+            with open(FILE_DATI, "r") as f:
+                return json.load(f)
+        except:
+            return []
+    return []
+
+def salva_dati(dati):
+    with open(FILE_DATI, "w") as f:
+        json.dump(dati, f)
+
+storico = carica_dati()
+
+if "edit_data" not in st.session_state:
+    st.session_
