@@ -157,7 +157,6 @@ with tab_scelta1:
         with st.expander(f"📅 Giorno {giorno} - Settimana {num_sett}", expanded=(giorno == 1)):
             st.text_input(f"Descrizione Allenamento G{giorno}", key=desc_k)
             
-            # Sezione PREVISTO
             st.markdown(f"#### 📋 Allenamento Previsto (Giorno {giorno})")
             km_prev = st.number_input(f"Km Previsti G{giorno}", min_value=0.0, value=0.0, step=0.1, key=k_p)
             min_prev = st.number_input(f"Minuti Previsti G{giorno}", min_value=0, max_value=300, value=0, key=m_p)
@@ -175,7 +174,6 @@ with tab_scelta1:
             mostra_banner_sforzo(sf_prev)
             
             st.markdown("---")
-            # Sezione EFFETTIVO
             st.markdown(f"#### ✅ Allenamento Effettivo (Giorno {giorno})")
             km_eff = st.number_input(f"Km Effettivi G{giorno}", min_value=0.0, value=0.0, step=0.1, key=k_e)
             min_eff = st.number_input(f"Minuti Effettivi G{giorno}", min_value=0, max_value=300, value=0, key=m_e)
@@ -195,7 +193,6 @@ with tab_scelta1:
             mostra_banner_sforzo(sf_eff)
             
             st.markdown("---")
-            # Sezione BIOMETRIA
             st.markdown(f"#### ❤️ Dati Biometrici (Giorno {giorno})")
             b_max = st.number_input(f"BPM Max G{giorno}", 0, 220, 0, key=bmax_k)
             b_min = st.number_input(f"BPM Min G{giorno}", 0, 150, 0, key=bmin_k)
@@ -341,10 +338,12 @@ with tab_scelta3:
     if uploaded_file is not None:
         try:
             dati_caricati = json.load(uploaded_file)
-            if st.button("🔄 Conferma e Ripristina Backup", key="btn_conferma_ripristino"):
+            if isinstance(dati_caricati, list):
                 salva_dati(dati_caricati)
-                st.success("✅ Backup ripristinato con successo!")
+                st.success("✅ Backup caricato e ripristinato automaticamente con successo!")
                 st.rerun()
+            else:
+                st.error("Il file JSON non ha il formato corretto.")
         except Exception as e:
             st.error("Errore nella lettura del file JSON.")
 
