@@ -88,6 +88,9 @@ storico = carica_dati()
 if "edit_data" not in st.session_state:
     st.session_state.edit_data = None
 
+if "ultimo_file_caricato" not in st.session_state:
+    st.session_state.ultimo_file_caricato = None
+
 tab_scelta1, tab_scelta2, tab_scelta3 = st.tabs([
     "📅 Gestione 4 Settimane", 
     "📊 Tabella & PDF",
@@ -243,17 +246,28 @@ with tab_scelta1:
     nome_salv = st.text_input("Nome piano di allenamento:", value=titolo_predefinito, key="nome_piano_28g_input")
     if st.button("💾 Salva Settimana / Aggiorna", key="btn_salva_settimana"):
         if nome_salv.strip():
+            # Salviamo anche i dati dei 7 giorni della settimana corrente per poterli ricaricare in modifica
+            dati_giornalieri_salvati = {}
+            s_n = str(num_sett)
+            for g in range(1, 8):
+                g_n = str(g)
+                for prefix in ["p_km_", "e_km_", "p_min_", "e_min_", "p_sf_", "e_sf_", "rit_p_", "rit_", "rit_calc_", "rit_p_calc_", "bmax_", "bmin_", "cad_", "desc_"]:
+                    k_full = prefix + "s" + s_n + "_g" + g_n
+                    if k_full in st.session_state:
+                        dati_giornalieri_salvati[k_full] = st.session_state[k_full]
+
             nuovo_record = {
                 "titolo": nome_salv,
                 "settimana": settimana_scelta,
                 "km_settimana": km_sett_tot,
                 "carico_previsto": carico_prev_tot,
                 "carico_effettivo": carico_eff_tot,
-                "ritmo_medio": str_r
+                "ritmo_medio": str_r,
+                "dati_giorni": dati_giornalieri_salvati
             }
             storico.append(nuovo_record)
             salva_dati(storico)
-            st.success("✅ Salvato correttamente!")
+            st.success("✅ Salvato correttamente con tutti i dati dei giorni!")
             st.session_state.edit_data = None
         else:
             st.error("Inserisci un nome valido.")
@@ -337,11 +351,14 @@ with tab_scelta3:
     uploaded_file = st.file_uploader("📤 Ripristina Backup da File JSON salvato sul Tablet:", type=["json"], key="uploader_backup_json")
     if uploaded_file is not None:
         try:
-            dati_caricati = json.load(uploaded_file)
+            bytes_data = uploaded_file.getvalue()
+            dati_caricati = json.loads(bytes_data.decode("utf-8"))
             if isinstance(dati_caricati, list):
-                salva_dati(dati_caricati)
-                st.success("✅ Backup caricato e ripristinato automaticamente con successo!")
-                st.rerun()
+                if st.session_state.get("ultimo_file_caricato") != uploaded_file.name:
+                    salva_dati(dati_caricati)
+                    st.session_state.ultimo_file_caricato = uploaded_file.name
+                    st.success("✅ Backup caricato e ripristinato con successo!")
+                    st.rerun()
             else:
                 st.error("Il file JSON non ha il formato corretto.")
         except Exception as e:
@@ -353,14 +370,18 @@ with tab_scelta3:
         st.info("Nessun elemento salvato nell'archivio.")
     else:
         for idx, item in enumerate(storico):
-            with st.expander("📌 " + str(item['titolo']) + " (" + str(item['settimana']) + ")"):
-                st.write("**KM:** " + f"{item['km_settimana']:.2f}" + " | **Carico Effettivo:** " + str(item['carico_effettivo']) + " pt | **Ritmo Medio:** " + str(item['ritmo_medio']))
+            with st.expander("📌 " + str(item.get('titolo', 'Senza nome')) + " (" + str(item.get('settimana', '')) + ")"):
+                st.write("**KM:** " + f"{item.get('km_settimana', 0):.2f}" + " | **Carico Effettivo:** " + str(item.get('carico_effettivo', 0)) + " pt | **Ritmo Medio:** " + str(item.get('ritmo_medio', '--:--')))
                 
                 col_btn1, col_btn2 = st.columns(2)
                 with col_btn1:
                     if st.button("✏️ Modifica", key="edit_item_" + str(idx)):
                         st.session_state.edit_data = item
-                        st.success("Caricato '" + str(item['titolo']) + "'. Torna alla scheda 'Gestione 4 Settimane'.")
+                        # Ricarica i dati giornalieri nei widget se presenti nel record
+                        if "dati_giorni" in item:
+                            for k, v in item["dati_giorni"].items():
+                                st.session_state[k] = v
+                        st.success("Caricato '" + str(item.get('titolo', '')) + "'. Torna alla scheda 'Gestione 4 Settimane'.")
                 with col_btn2:
                     if st.button("🗑️ Elimina", key="del_item_" + str(idx)):
                         storico.pop(idx)
