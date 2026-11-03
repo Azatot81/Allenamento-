@@ -1,4 +1,3 @@
-
 import streamlit as st
 import json
 import os
@@ -92,15 +91,19 @@ if "edit_data" not in st.session_state:
 if "ultimo_file_caricato" not in st.session_state:
     st.session_state.ultimo_file_caricato = None
 
-# Gestione azioni in sospeso (es. richiesta modifica da archivio)
+# Gestione azione di modifica proveniente dall'archivio
 if "pending_edit" in st.session_state:
     item_da_modificare = st.session_state.pending_edit
     st.session_state.edit_data = item_da_modificare
+    
     if "dati_giorni" in item_da_modificare and isinstance(item_da_modificare["dati_giorni"], dict):
         for k, v in item_da_modificare["dati_giorni"].items():
             st.session_state[k] = v
+    else:
+        st.warning("⚠️ Questo vecchio piano salvato non contiene i dettagli giornalieri. Puoi inserire i nuovi dati e risalvarlo.")
+    
     del st.session_state.pending_edit
-    st.rerun()
+    st.success("✏️ Piano caricato con successo! Vai alla prima scheda 'Gestione 4 Settimane' per vederlo.")
 
 tab_scelta1, tab_scelta2, tab_scelta3 = st.tabs([
     "📅 Gestione 4 Settimane", 
@@ -137,7 +140,7 @@ with tab_scelta1:
     titolo_predefinito = ""
     if st.session_state.edit_data:
         titolo_predefinito = st.session_state.edit_data.get("titolo", "")
-        st.info(f"✏️ Stai modificando il piano: **{titolo_predefinito}**")
+        st.info(f"✏️ Stai modificando il piano: **{titolo_predefinito}** (Vai alla settimana indicata nel piano salvato per visualizzare i dati)")
 
     settimana_scelta = st.selectbox("Seleziona la Settimana:", ["Settimana 1", "Settimana 2", "Settimana 3", "Settimana 4"], key="sel_settimana_principale")
     num_sett = int(settimana_scelta.split(" ")[1])
@@ -310,7 +313,7 @@ with tab_scelta2:
         sf_e = st.session_state.get(f"e_sf_s{s_n}_g{g_n}", 5)
         
         c_p = m_prev * sf_p if m_prev > 0 else int(k_prev * 10 * sf_p)
-        c_e = m_eff * sf_e if m_eff > 0 else int(k_eff * 10 * sf_e)
+        c_e = m_eff * sf_e if m_eff > 0 else int(km_eff * 10 * sf_e) if False else int(k_eff * 10 * sf_e)
         
         bmax = st.session_state.get(f"bmax_s{s_n}_g{g_n}", 0)
         cad = st.session_state.get(f"cad_s{s_n}_g{g_n}", 0)
@@ -393,4 +396,3 @@ with tab_scelta3:
                         storico.pop(idx)
                         salva_dati(storico)
                         st.rerun()
-
