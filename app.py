@@ -241,4 +241,149 @@ with tab_scelta1:
         str_r = f"{int(m_rs // 60)}:{int(m_rs % 60):02d} /km"
     else:
         str_r = "--:--"
-    cs
+    cs4.metric("Ritmo Medio", str_r)
+
+    nome_salv = st.text_input("Nome piano di allenamento:", value=titolo_predefinito, key="nome_piano_28g_input")
+    if st.button("💾 Salva Settimana / Aggiorna", key="btn_salva_settimana"):
+        if nome_salv.strip():
+            # Salviamo tutti i dati dei 7 giorni della settimana corrente
+            dati_giornalieri_salvati = {}
+            s_n = str(num_sett)
+            for g in range(1, 8):
+                g_n = str(g)
+                for prefix in ["p_km_", "e_km_", "p_min_", "e_min_", "p_sf_", "e_sf_", "rit_p_", "rit_", "rit_calc_", "rit_p_calc_", "bmax_", "bmin_", "cad_", "desc_"]:
+                    k_full = prefix + "s" + s_n + "_g" + g_n
+                    if k_full in st.session_state:
+                        dati_giornalieri_salvati[k_full] = st.session_state[k_full]
+
+            nuovo_record = {
+                "titolo": nome_salv,
+                "settimana": settimana_scelta,
+                "km_settimana": km_sett_tot,
+                "carico_previsto": carico_prev_tot,
+                "carico_effettivo": carico_eff_tot,
+                "ritmo_medio": str_r,
+                "dati_giorni": dati_giornalieri_salvati
+            }
+            storico.append(nuovo_record)
+            salva_dati(storico)
+            st.success("✅ Salvato correttamente con tutti i dati dei giorni!")
+            st.session_state.edit_data = None
+        else:
+            st.error("Inserisci un nome valido.")
+
+with tab_scelta2:
+    st.subheader("📊 Schema Tabulare Completo (Stile Excel)")
+    st.markdown("Prospetto riassuntivo dei 7 giorni della settimana selezionata, pronto per la stampa o l'esportazione PDF dal browser.")
+
+    sett_tabella = st.selectbox("Visualizza Tabella per:", ["Settimana 1", "Settimana 2", "Settimana 3", "Settimana 4"], key="tab_s_sel_report")
+    n_s_tab = int(sett_tabella.split(" ")[1])
+
+    dati_tabella = []
+    tot_km_p = 0.0
+    tot_km_e = 0.0
+    tot_min_p = 0
+    tot_min_e = 0
+    tot_carico_p = 0
+    tot_carico_e = 0
+
+    for g in range(1, 8):
+        s_n = str(n_s_tab)
+        g_n = str(g)
+        
+        desc = st.session_state.get(f"desc_s{s_n}_g{g_n}", f"Allenamento {g}")
+        k_prev = st.session_state.get(f"p_km_s{s_n}_g{g_n}", 0.0)
+        k_eff = st.session_state.get(f"e_km_s{s_n}_g{g_n}", 0.0)
+        m_prev = st.session_state.get(f"p_min_s{s_n}_g{g_n}", 0)
+        m_eff = st.session_state.get(f"e_min_s{s_n}_g{g_n}", 0)
+        sf_p = st.session_state.get(f"p_sf_s{s_n}_g{g_n}", 5)
+        sf_e = st.session_state.get(f"e_sf_s{s_n}_g{g_n}", 5)
+        
+        c_p = m_prev * sf_p if m_prev > 0 else int(k_prev * 10 * sf_p)
+        c_e = m_eff * sf_e if m_eff > 0 else int(k_eff * 10 * sf_e)
+        
+        bmax = st.session_state.get(f"bmax_s{s_n}_g{g_n}", 0)
+        cad = st.session_state.get(f"cad_s{s_n}_g{g_n}", 0)
+
+        tot_km_p += k_prev
+        tot_km_e += k_eff
+        tot_min_p += m_prev
+        tot_min_e += m_eff
+        tot_carico_p += c_p
+        tot_carico_e += c_e
+
+        dati_tabella.append({
+            "Giorno": f"Giorno {g}",
+            "Descrizione": desc if desc else "-",
+            "Km Prev.": f"{k_prev:.1f}",
+            "Km Eff.": f"{k_eff:.1f}",
+            "Min Prev.": m_prev,
+            "Min Eff.": m_eff,
+            "Sforzo P.": sf_p,
+            "Sforzo E.": sf_e,
+            "Carico Prev.": c_p,
+            "Carico Eff.": c_e,
+            "BPM Max": bmax if bmax > 0 else "-",
+            "Cadenza": cad if cad > 0 else "-"
+        })
+
+    df_report = pd.DataFrame(dati_tabella)
+    st.dataframe(df_report, use_container_width=True)
+
+    st.markdown("### 📌 Totali " + sett_tabella)
+    st.markdown("- **KM Previsti / Effettivi:** `" + f"{tot_km_p:.1f}" + " km` / `" + f"{tot_km_e:.1f}" + " km`")
+    st.markdown("- **Minuti Previsti / Effettivi:** `" + str(tot_min_p) + " min` / `" + str(tot_min_e) + " min`")
+    st.markdown("- **Carico Previsto / Effettivo:** `" + str(tot_carico_p) + " pt` / `" + str(tot_carico_e) + " pt`")
+
+with tab_scelta3:
+    st.subheader("📂 Archivio, Modifica & Backup Locale")
+    
+    json_string = json.dumps(storico, ensure_ascii=False, indent=4)
+    st.download_button(
+        label="📥 Scarica Backup Archivio sul Tablet/Smartphone (.json)",
+        data=json_string,
+        file_name="backup_allenamenti.json",
+        mime="application/json",
+        key="btn_download_backup"
+    )
+    
+    st.markdown("---")
+    uploaded_file = st.file_uploader("📤 Ripristina Backup da File JSON salvato sul Tablet:", type=["json"], key="uploader_backup_json")
+    if uploaded_file is not None:
+        try:
+            bytes_data = uploaded_file.getvalue()
+            dati_caricati = json.loads(bytes_data.decode("utf-8"))
+            if isinstance(dati_caricati, list):
+                if st.session_state.get("ultimo_file_caricato") != uploaded_file.name:
+                    salva_dati(dati_caricati)
+                    st.session_state.ultimo_file_caricato = uploaded_file.name
+                    st.success("✅ Backup caricato e ripristinato con successo!")
+                    st.rerun()
+            else:
+                st.error("Il file JSON non ha il formato corretto.")
+        except Exception as e:
+            st.error(f"Errore nella lettura del file JSON: {e}")
+
+    st.markdown("---")
+    st.subheader("📋 Elenco Piani Salvati (Archivio)")
+    if not storico:
+        st.info("Nessun elemento salvato nell'archivio.")
+    else:
+        for idx, item in enumerate(storico):
+            with st.expander("📌 " + str(item.get('titolo', 'Senza nome')) + " (" + str(item.get('settimana', '')) + ")"):
+                st.write("**KM:** " + f"{item.get('km_settimana', 0):.2f}" + " | **Carico Effettivo:** " + str(item.get('carico_effettivo', 0)) + " pt | **Ritmo Medio:** " + str(item.get('ritmo_medio', '--:--')))
+                
+                col_btn1, col_btn2 = st.columns(2)
+                with col_btn1:
+                    if st.button("✏️ Modifica", key="edit_item_" + str(idx)):
+                        st.session_state.edit_data = item
+                        if "dati_giorni" in item and isinstance(item["dati_giorni"], dict):
+                            for k, v in item["dati_giorni"].items():
+                                st.session_state[k] = v
+                        st.success("✅ Dati caricati! Torna alla scheda 'Gestione 4 Settimane'.")
+                        st.rerun()
+                with col_btn2:
+                    if st.button("🗑️ Elimina", key="del_item_" + str(idx)):
+                        storico.pop(idx)
+                        salva_dati(storico)
+                        st.rerun()
